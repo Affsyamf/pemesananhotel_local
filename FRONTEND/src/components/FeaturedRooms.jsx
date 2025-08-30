@@ -48,7 +48,7 @@ function FeaturedRooms() {
       return (
         // Tampilkan 4 skeleton card saat loading
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-center">
-          {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
+          {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
         </div>
       );
     }

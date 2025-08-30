@@ -247,35 +247,54 @@ router.put('/bookings/:bookingId/cancel', isAuthenticated, async (req, res) => {
     try {
         await connection.beginTransaction();
         
-        const [bookings] = await connection.query('SELECT * FROM bookings WHERE id = ? AND user_id = ? FOR UPDATE', [bookingId, userId]);
-        if (bookings.length === 0 || bookings[0].status === 'cancelled') {
+        // 1. Ambil detail booking dan kunci barisnya untuk update
+        const [bookings] = await connection.query(
+            'SELECT * FROM bookings WHERE id = ? AND user_id = ? FOR UPDATE', 
+            [bookingId, userId]
+        );
+
+        if (bookings.length === 0) {
             await connection.rollback();
-            return res.status(404).json({ message: 'Pesanan tidak ditemukan atau sudah dibatalkan.' });
+            return res.status(404).json({ message: 'Pesanan tidak ditemukan.' });
         }
+
         const booking = bookings[0];
 
-        if (booking.status !== 'pending' && booking.status !== 'rejected') {
+        // Jangan izinkan pembatalan jika sudah dibatalkan atau ditolak
+        if (booking.status === 'cancelled' || booking.status === 'rejected') {
+            await connection.rollback();
+            return res.status(400).json({ message: 'Pesanan ini sudah dalam status final dan tidak dapat dibatalkan.' });
+        }
+
+        // 2. Kembalikan stok HANYA JIKA pesanan sudah dibayar
+        // Ini adalah indikator bahwa stok sebelumnya telah dikurangi.
+        if (booking.payment_status === 'paid') {
             const updateAvailabilitySql = `
-                UPDATE room_availability SET available_quantity = available_quantity + 1 
+                UPDATE room_availability 
+                SET available_quantity = available_quantity + 1 
                 WHERE room_id = ? AND date >= ? AND date < ?;
             `;
             await connection.query(updateAvailabilitySql, [booking.room_id, booking.check_in_date, booking.check_out_date]);
         }
         
-        await connection.query('UPDATE bookings SET status = "cancelled" WHERE id = ?', [bookingId]);
+        // 3. Ubah status booking menjadi 'cancelled'
+        await connection.query(
+            'UPDATE bookings SET status = "cancelled" WHERE id = ?', 
+            [bookingId]
+        );
         
+        // 4. Jika semua berhasil, simpan perubahan
         await connection.commit();
         res.json({ message: 'Pesanan berhasil dibatalkan.' });
 
     } catch (error) {
         await connection.rollback();
-        console.error(error);
+        console.error("Error saat membatalkan pesanan:", error);
         res.status(500).json({ message: 'Server error saat membatalkan pesanan.' });
     } finally {
         connection.release();
     }
 });
-
 
 // === RUTE HALAMAN UTAMA & PROMO ===
 
@@ -290,7 +309,7 @@ router.get('/featured-rooms', async (req, res) => {
             JOIN room_availability ra ON r.id = ra.room_id
             WHERE ra.date = CURDATE() AND ra.is_active = 1 AND ra.available_quantity > 0
             ORDER BY r.averageRating DESC, ra.price ASC
-            LIMIT 4;
+            LIMIT 6;
         `;
         const [rooms] = await db.query(sql);
         res.json(rooms);

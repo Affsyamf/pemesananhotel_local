@@ -18,7 +18,7 @@ function Navbar() {
       <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm shadow-md fixed w-full top-0 z-50 transition-colors duration-300">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="text-2xl font-bold text-gray-800 dark:text-white">
-            Hotel Mewah
+            La Hotel Afif
           </div>
           
           {/* Menu Desktop */}

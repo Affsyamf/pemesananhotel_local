@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-// --- PERBAIKAN 1: Hapus 'useNavigate' dari impor ---
 import { Link } from 'react-router-dom';
 import { Printer, XCircle, CreditCard } from 'lucide-react';
 import ConfirmationModal from '../components/admin/ConfirmationModal';
@@ -13,8 +12,6 @@ function MyBookingsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState(null);
-  // --- PERBAIKAN 2: Hapus deklarasi yang tidak digunakan ---
-  // const navigate = useNavigate();
 
   const fetchMyBookings = useCallback(async (page) => {
     try {
@@ -92,7 +89,6 @@ function MyBookingsPage() {
     );
   };
 
-
   return (
     <div className="container mx-auto p-6 md:p-10">
       <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-200 mb-8">Riwayat Pesanan Saya</h1>
@@ -109,13 +105,13 @@ function MyBookingsPage() {
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
-                            <th className="th-style text-center dark:text-gray-100">Kamar</th>
-                            <th className="th-style text-center dark:text-gray-100">Tanggal Pesan</th>
-                            <th className="th-style text-center dark:text-gray-100">Check-in</th>
-                            <th className="th-style text-center dark:text-gray-100">Check-out</th>
-                            <th className="th-style text-center dark:text-gray-100">Pembayaran</th>
-                            <th className="th-style text-center dark:text-gray-100">Status Pesanan</th>
-                            <th className="th-style text-center dark:text-gray-100">Aksi</th>
+                            <th className="th-style dark:text-gray-100">Kamar</th>
+                            <th className="th-style dark:text-gray-100">Tanggal Pesan</th>
+                            <th className="th-style dark:text-gray-100">Check-in</th>
+                            <th className="th-style dark:text-gray-100">Check-out</th>
+                            <th className="th-style dark:text-gray-100">Pembayaran</th>
+                            <th className="th-style dark:text-gray-100">Status Pesanan</th>
+                            <th className="th-style dark:text-gray-100">Aksi</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -125,8 +121,8 @@ function MyBookingsPage() {
                                 <td className="td-style dark:text-white">{formatDate(booking.created_at)}</td>
                                 <td className="td-style dark:text-white">{formatDate(booking.check_in_date)}</td>
                                 <td className="td-style dark:text-white">{formatDate(booking.check_out_date)}</td>
-                                <td className="td-style text-center">{renderPaymentStatus(booking.payment_status)}</td>
-                                <td className="td-style text-center">{renderBookingStatus(booking.status)}</td>
+                                <td className="td-style">{renderPaymentStatus(booking.payment_status)}</td>
+                                <td className="td-style">{renderBookingStatus(booking.status)}</td>
                                 <td className="td-style">
                                     <div className="flex items-center space-x-4">
                                         {booking.payment_status === 'pending' && (
@@ -166,7 +162,7 @@ function MyBookingsPage() {
         onClose={closeCancelModal}
         onConfirm={confirmCancel}
         title="Batalkan Pesanan"
-        message={`Apakah Anda yakin ingin membatalkan pesanan untuk kamar "${bookingToCancel?.room_name}"? Aksi ini tidak dapat dibatalkan.`}
+        message={`Apakah Anda yakin ingin membatalkan pesanan untuk kamar "${bookingToCancel?.room_name}"?`}
       />
     </div>
   );
