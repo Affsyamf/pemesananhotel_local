@@ -5,78 +5,71 @@ const router = express.Router();
 
 // === RUTE PENCARIAN & DETAIL KAMAR ===
 
-// Endpoint untuk mencari kamar berdasarkan tanggal (DIPERBAIKI TOTAL)
+const calculateDuration = (checkIn, checkOut) => {
+    const diffTime = new Date(checkOut) - new Date(checkIn);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+};
+
+// Endpoint untuk mencari kamar berdasarkan tanggal (DIPERBAIKI LAGI)
 router.get('/rooms', async (req, res) => {
     const { checkInDate, checkOutDate } = req.query;
 
     if (!checkInDate || !checkOutDate) {
-        return res.status(400).json({ message: 'Tanggal check-in dan check-out diperlukan.' });
+        return res.json({ rooms: [], duration: 0 });
     }
 
     try {
+        const duration = calculateDuration(checkInDate, checkOutDate);
+        if (duration <= 0) {
+            return res.json({ rooms: [], duration: 0 });
+        }
+
+        // --- PERBAIKAN: Menyederhanakan GROUP BY untuk memastikan SUM() bekerja ---
         const sql = `
-            SELECT 
-                r.id,
-                r.name,
-                r.type,
-                r.facilities,
-                r.description,
-                r.averageRating,
-                r.numReviews,
-                MIN(ra.price) AS price, -- Mengambil harga terendah sebagai harga awal
-                MIN(ra.available_quantity) AS available_quantity, -- Mengambil sisa kamar paling sedikit
+            SELECT
+                r.id, r.name, r.type, r.facilities, r.description,
+                r.averageRating, r.numReviews,
+                SUM(ra.price) AS total_price,
+                MIN(ra.available_quantity) AS available_quantity,
                 (SELECT ri.image_url FROM room_images ri WHERE ri.room_id = r.id ORDER BY ri.id ASC LIMIT 1) as image_url
             FROM rooms r
             JOIN room_availability ra ON r.id = ra.room_id
-            WHERE 
-                ra.date >= ? AND ra.date < ? 
-                AND ra.available_quantity > 0 
-                AND ra.is_active = 1
-            GROUP BY r.id
-            HAVING COUNT(ra.date) = DATEDIFF(?, ?); -- Memastikan kamar tersedia di seluruh rentang tanggal
+            WHERE
+                ra.date >= ? AND ra.date < ?
+                AND ra.is_active = TRUE
+            GROUP BY
+                r.id
+            HAVING
+                MIN(ra.available_quantity) > 0 AND
+                COUNT(ra.date) = ?;
         `;
-        const [rooms] = await db.query(sql, [checkInDate, checkOutDate, checkOutDate, checkInDate]);
-        res.json(rooms);
+        
+        const [availableRooms] = await db.query(sql, [checkInDate, checkOutDate, duration]);
+        
+        res.json({ rooms: availableRooms, duration: duration });
 
     } catch (error) {
-        console.error("Error searching rooms:", error);
-        res.status(500).json({ message: 'Server Error saat mencari kamar' });
+        console.error("Error saat mencari ketersediaan kamar:", error);
+        res.status(500).json({ message: 'Server Error saat mengambil ketersediaan kamar' });
     }
 });
 
+
 // Endpoint untuk mendapatkan detail satu kamar
 router.get('/rooms/:id', async (req, res) => {
-    const { id } = req.params;
-    const { checkIn, checkOut } = req.query;
-
     try {
-        const [roomDetails] = await db.query('SELECT * FROM rooms WHERE id = ?', [id]);
-        if (roomDetails.length === 0) {
+        const { id } = req.params;
+        const [rooms] = await db.query('SELECT * FROM rooms WHERE id = ?', [id]);
+        if (rooms.length === 0) {
             return res.status(404).json({ message: 'Kamar tidak ditemukan' });
         }
-        const room = roomDetails[0];
-
-        const [images] = await db.query('SELECT id, image_url, alt_text FROM room_images WHERE room_id = ? ORDER BY id ASC', [id]);
-        room.images = images;
-
-        // Ambil data ketersediaan & harga untuk rentang tanggal jika disediakan
-        if (checkIn && checkOut) {
-            const [availability] = await db.query(
-                'SELECT date, price, available_quantity FROM room_availability WHERE room_id = ? AND date >= ? AND date < ? ORDER BY date ASC',
-                [id, checkIn, checkOut]
-            );
-            room.availability = availability;
-        } else {
-            // Jika tidak, ambil harga untuk hari ini
-            const [todayPrice] = await db.query(
-                'SELECT price FROM room_availability WHERE room_id = ? AND date = CURDATE()', [id]
-            );
-            room.price = todayPrice.length > 0 ? todayPrice[0].price : null;
-        }
-
-        res.json(room);
+        const roomData = rooms[0];
+        const [images] = await db.query('SELECT id, image_url FROM room_images WHERE room_id = ? ORDER BY id ASC', [id]);
+        roomData.images = images;
+        res.json(roomData);
     } catch (error) {
-        console.error(`Error fetching room details for id ${id}:`, error);
+        console.error(error);
         res.status(500).json({ message: 'Server Error' });
     }
 });
@@ -86,7 +79,6 @@ router.get('/rooms/:id', async (req, res) => {
 
 // Endpoint untuk membuat booking baru
 router.post('/bookings', isAuthenticated, async (req, res) => {
-    // ... (Logika pembuatan booking tetap sama)
     const { room_id, guest_name, check_in_date, check_out_date } = req.body;
     const user_id = req.user.id;
     const connection = await db.getConnection();
@@ -131,7 +123,6 @@ router.post('/bookings', isAuthenticated, async (req, res) => {
 
 // Endpoint untuk pembayaran
 router.post('/bookings/:bookingId/pay', isAuthenticated, async (req, res) => {
-    // ... (Logika pembayaran tetap sama)
     const { bookingId } = req.params;
     const { promoCode } = req.body;
     const userId = req.user.id;
@@ -193,7 +184,6 @@ router.post('/bookings/:bookingId/pay', isAuthenticated, async (req, res) => {
 
 // Endpoint untuk riwayat booking
 router.get('/my-bookings', isAuthenticated, async (req, res) => {
-    // ... (Logika riwayat booking tetap sama)
     const userId = req.user.id;
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
@@ -228,7 +218,6 @@ router.get('/my-bookings', isAuthenticated, async (req, res) => {
 
 // Endpoint untuk detail booking
 router.get('/booking/:id', isAuthenticated, async (req, res) => {
-    // ... (Logika detail booking tetap sama)
     const { id } = req.params;
     const userId = req.user.id;
     try {
@@ -251,7 +240,6 @@ router.get('/booking/:id', isAuthenticated, async (req, res) => {
 
 // Endpoint untuk membatalkan booking
 router.put('/bookings/:bookingId/cancel', isAuthenticated, async (req, res) => {
-    // ... (Logika pembatalan tetap sama)
     const { bookingId } = req.params;
     const userId = req.user.id;
     const connection = await db.getConnection();
@@ -293,7 +281,6 @@ router.put('/bookings/:bookingId/cancel', isAuthenticated, async (req, res) => {
 
 // Endpoint untuk kamar unggulan
 router.get('/featured-rooms', async (req, res) => {
-    // ... (Logika kamar unggulan tetap sama)
     try {
         const sql = `
             SELECT 
@@ -315,7 +302,6 @@ router.get('/featured-rooms', async (req, res) => {
 
 // Endpoint untuk verifikasi promo
 router.post('/promos/verify', isAuthenticated, async (req, res) => {
-    // ... (Logika verifikasi promo tetap sama)
     const { code } = req.body;
     if (!code) { return res.status(400).json({ message: 'Kode promo diperlukan.' }); }
     try {
@@ -337,7 +323,6 @@ router.post('/promos/verify', isAuthenticated, async (req, res) => {
 
 // Endpoint untuk mengambil semua ulasan sebuah kamar
 router.get('/rooms/:roomId/reviews', async (req, res) => {
-    // ... (Logika mengambil ulasan tetap sama)
     try {
         const { roomId } = req.params;
         const sql = `
@@ -355,7 +340,6 @@ router.get('/rooms/:roomId/reviews', async (req, res) => {
     }
 });
 
-// === ENDPOINT BARU YANG HILANG ===
 // Endpoint untuk memeriksa apakah user bisa memberi ulasan
 router.get('/rooms/:roomId/can-review', isAuthenticated, async (req, res) => {
     try {
@@ -381,7 +365,6 @@ router.get('/rooms/:roomId/can-review', isAuthenticated, async (req, res) => {
 
 // Endpoint untuk mengirim ulasan
 router.post('/rooms/:roomId/reviews', isAuthenticated, async (req, res) => {
-    // ... (Logika mengirim ulasan tetap sama)
     const { roomId } = req.params;
     const userId = req.user.id;
     const { rating, comment, bookingId } = req.body;

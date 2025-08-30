@@ -14,27 +14,26 @@ const formatDate = (date) => {
 };
 
 function BookRoomPage() {
-  const navigate = useNavigate();
-    // State untuk menyimpan semua kamar yang *tersedia* berdasarkan tanggal
-    const [availableRooms, setAvailableRooms] = useState([]); 
+    const navigate = useNavigate();
+    const [availableRooms, setAvailableRooms] = useState([]);
     const [loading, setLoading] = useState(false);
     
     // State untuk input tanggal
     const [checkInDate, setCheckInDate] = useState('');
     const [checkOutDate, setCheckOutDate] = useState('');
 
-    // State untuk filter (tidak berubah)
+    // State untuk menandai apakah pencarian sudah pernah dilakukan
+    const [hasSearched, setHasSearched] = useState(false);
+
     const [filters, setFilters] = useState({
         price: { min: null, max: null },
         type: 'Semua',
         facilities: [],
     });
     
-    // State untuk modal booking (tidak berubah)
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState(null);
 
-    // Fungsi baru untuk mencari ketersediaan kamar
     const handleAvailabilitySearch = async () => {
         if (!checkInDate || !checkOutDate) {
             toast.error('Silakan pilih tanggal check-in dan check-out.');
@@ -47,9 +46,9 @@ function BookRoomPage() {
 
         try {
             setLoading(true);
-            setAvailableRooms([]); // Kosongkan daftar kamar saat pencarian baru
+            setHasSearched(true);
+            setAvailableRooms([]); 
             
-            // Panggil API GET /rooms dengan parameter tanggal
             const response = await axios.get('http://localhost:5001/api/public/rooms', {
                 params: {
                     checkInDate: formatDate(checkInDate),
@@ -57,21 +56,33 @@ function BookRoomPage() {
                 }
             });
             
-            setAvailableRooms(response.data);
-            if (response.data.length === 0) {
-                toast.success('Tidak ada kamar tersedia pada tanggal tersebut, coba tanggal lain.');
+            // --- PERBAIKAN BARU: Menangani respons objek dari API ---
+            if (response.data && Array.isArray(response.data.rooms)) {
+                // Ambil array 'rooms' dari dalam objek respons
+                setAvailableRooms(response.data.rooms); 
+                if (response.data.rooms.length === 0) {
+                    toast('Tidak ada kamar tersedia pada tanggal tersebut, coba tanggal lain.', { icon: 'ℹ️' });
+                }
+            } else {
+                // Jika format respons tidak sesuai atau tidak ada properti 'rooms'
+                console.error("API tidak mengembalikan format yang diharapkan:", response.data);
+                setAvailableRooms([]); // Pastikan state tetap array
+                toast.error("Terjadi kesalahan saat memproses data dari server.");
             }
+
         } catch (error) {
+            // Tangani error jaringan atau server
             toast.error(error.response?.data?.message || 'Gagal mengambil data ketersediaan kamar');
+            setAvailableRooms([]); // Pastikan state tetap array saat error
         } finally {
             setLoading(false);
         }
     };
 
-    // Logika filter sekarang berjalan di atas `availableRooms`
     const filteredRooms = useMemo(() => {
+        // Karena availableRooms sekarang dijamin array, ini aman.
         return availableRooms.filter(room => {
-            const price = room.price;
+            const price = room.starting_price; 
             const { min, max } = filters.price;
             if (min !== null && price < min) return false;
             if (max !== null && price > max) return false;
@@ -85,7 +96,6 @@ function BookRoomPage() {
         });
     }, [availableRooms, filters]);
 
-    // Ekstrak tipe dan fasilitas dari kamar yang tersedia
     const availableTypes = useMemo(() => [...new Set(availableRooms.map(room => room.type))], [availableRooms]);
     const availableFacilities = useMemo(() => {
         const allFacilities = new Set();
@@ -97,15 +107,13 @@ function BookRoomPage() {
         return [...allFacilities];
     }, [availableRooms]);
 
-     const numberOfNights = useMemo(() => {
+    const numberOfNights = useMemo(() => {
         if (!checkInDate || !checkOutDate) return 0;
         const diffTime = new Date(checkOutDate) - new Date(checkInDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays > 0 ? diffDays : 0;
     }, [checkInDate, checkOutDate]);
 
-
-    // --- Logika untuk Booking Modal (DIPERBARUI) ---
     const handleOpenModal = (room) => {
         setSelectedRoom(room);
         setIsModalOpen(true);
@@ -120,7 +128,6 @@ function BookRoomPage() {
                 { 
                     ...data, 
                     room_id: selectedRoom.id, 
-                    // Kirim tanggal yang sudah dipilih
                     check_in_date: formatDate(checkInDate), 
                     check_out_date: formatDate(checkOutDate) 
                 }, 
@@ -129,7 +136,6 @@ function BookRoomPage() {
             toast.success('Pesanan dibuat, mengarahkan ke pembayaran...', { id: toastId });
             handleCloseModal();
             navigate(`/pay/${response.data.bookingId}`);
-            // Lakukan pencarian ulang untuk memperbarui daftar kamar
             handleAvailabilitySearch(); 
         } catch (error) {
             toast.error(error.response?.data?.message || 'Gagal membuat pesanan', { id: toastId });
@@ -140,7 +146,6 @@ function BookRoomPage() {
         <div className="container mx-auto p-6 md:p-10">
             <h1 className="text-4xl font-bold text-gray-800 mb-4 dark:text-gray-200">Cari Ketersediaan Kamar</h1>
             
-            {/* --- Form Input Tanggal Baru --- */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8 flex flex-col md:flex-row items-center gap-4">
                 <div className="flex-1 w-full">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Check-in</label>
@@ -156,8 +161,9 @@ function BookRoomPage() {
                 </button>
             </div>
             
-            {/* Tampilkan filter dan hasil HANYA setelah pencarian dilakukan */}
-            {availableRooms.length > 0 && (
+            {loading && <p className="text-center py-10">Mencari kamar...</p>}
+
+            {!loading && hasSearched && (
                 <>
                     <RoomFilter 
                         filters={filters} 
@@ -165,16 +171,24 @@ function BookRoomPage() {
                         availableTypes={availableTypes}
                         availableFacilities={availableFacilities}
                     />
-                    <p className="my-6 text-gray-600 dark:text-gray-200">Menampilkan {filteredRooms.length} kamar yang tersedia.</p>
+                    <p className="my-6 text-gray-600 dark:text-gray-200">
+                        {filteredRooms.length > 0
+                            ? `Menampilkan ${filteredRooms.length} kamar yang tersedia untuk ${numberOfNights} malam.`
+                            : `Tidak ada kamar yang cocok dengan filter Anda.`
+                        }
+                    </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {filteredRooms.map(room => (
-                            <UserRoomCard key={room.id} room={room} onBook={handleOpenModal} numberOfNights={numberOfNights}  />
+                            <UserRoomCard key={room.id} room={room} onBook={handleOpenModal} />
                         ))}
                     </div>
                 </>
             )}
 
-            {/* Modal tidak perlu diubah, karena tanggal diambil dari state halaman ini */}
+            {!loading && !hasSearched && (
+                 <p className="text-center py-10 text-gray-500 dark:text-gray-400">Silakan pilih tanggal untuk memulai pencarian.</p>
+            )}
+
             <BookingModal 
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
@@ -186,3 +200,4 @@ function BookRoomPage() {
 }
 
 export default BookRoomPage;
+
