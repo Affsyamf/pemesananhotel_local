@@ -10,7 +10,7 @@ import AdminLayout from './components/admin/AdminLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Halaman Publik
-import DashboardPage from './pages/DashboardPage'; // Asumsi ini halaman landing
+import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -45,12 +45,14 @@ function App() {
       <Toaster position="top-center" reverseOrder={false} />
       <Routes>
         {/* --- RUTE PUBLIK --- */}
-        {/* Hapus <Route path="/" element={<DashboardPage />} /> jika landing page sama dengan login */}
         <Route path="/" element={<DashboardPage />} /> 
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        
+        {/* --- PERBAIKAN: Rute Detail Kamar dijadikan Rute Publik --- */}
+        <Route path="/room/:id" element={<RoomDetailPage />} />
 
         {/* --- RUTE PENGGUNA (USER) --- */}
         <Route element={<ProtectedRoute allowedRoles={['user']} />}>
@@ -60,7 +62,7 @@ function App() {
               <Route path="book" element={<BookRoomPage />} />
               <Route path="my-bookings" element={<MyBookingsPage />} />
               <Route path="profile" element={<UserProfilePage />} />
-              <Route path="rooms/:roomId" element={<RoomDetailPage />} />
+              {/* Hapus rute detail dari sini */}
             </Route>
             
             {/* Rute yang TIDAK menggunakan UserLayout (halaman penuh) */}
@@ -87,13 +89,10 @@ function App() {
             <Route path="/admin/print-booking/:bookingId" element={<AdminPrintBookingPage />} />
             <Route path="/admin/print-report" element={<PrintReportPage />} />
         </Route>
-
-        {/* Redirect Halaman Utama */}
-        <Route path="/" element={<Navigate to="/login" />} />
-
       </Routes>
     </Router>
   );
 }
 
 export default App;
+

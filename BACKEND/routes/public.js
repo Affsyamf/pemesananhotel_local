@@ -346,15 +346,27 @@ router.get('/rooms/:roomId/can-review', isAuthenticated, async (req, res) => {
         const { roomId } = req.params;
         const userId = req.user.id;
 
+        // Cari pemesanan terkonfirmasi untuk kamar ini oleh user ini,
+        // yang belum memiliki ulasan.
         const sql = `
-            SELECT COUNT(*) AS bookingCount 
-            FROM bookings 
-            WHERE user_id = ? AND room_id = ? AND status = 'confirmed'
+            SELECT b.id FROM bookings b
+            LEFT JOIN reviews r ON b.id = r.booking_id
+            WHERE b.user_id = ? 
+              AND b.room_id = ? 
+              AND b.status = 'confirmed' 
+              AND r.id IS NULL
+            ORDER BY b.check_in_date DESC
+            LIMIT 1;
         `;
         const [results] = await db.query(sql, [userId, roomId]);
 
-        const canReview = results[0].bookingCount > 0;
-        res.json({ canReview });
+        if (results.length > 0) {
+            // Jika ditemukan, kirim 'canReview: true' beserta ID booking-nya
+            res.json({ canReview: true, bookingId: results[0].id });
+        } else {
+            // Jika tidak, kirim 'canReview: false'
+            res.json({ canReview: false, bookingId: null });
+        }
 
     } catch (error) {
         console.error("Error checking review eligibility:", error);
@@ -403,5 +415,31 @@ router.post('/rooms/:roomId/reviews', isAuthenticated, async (req, res) => {
     }
 });
 
+router.get('/bookings/:bookingId/resume', isAuthenticated, async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+        const userId = req.user.id;
+
+        const sql = `
+            SELECT 
+                b.id, b.total_price,
+                r.name as room_name
+            FROM bookings b
+            JOIN rooms r ON b.room_id = r.id
+            WHERE b.id = ? AND b.user_id = ? AND b.payment_status = 'pending';
+        `;
+        const [bookings] = await db.query(sql, [bookingId, userId]);
+
+        if (bookings.length === 0) {
+            return res.status(404).json({ message: 'Pesanan tidak ditemukan atau sudah dibayar.' });
+        }
+        
+        res.json(bookings[0]);
+
+    } catch (error) {
+        console.error("Error fetching booking details for payment:", error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
 module.exports = router;
 

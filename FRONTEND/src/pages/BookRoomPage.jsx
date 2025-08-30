@@ -18,11 +18,9 @@ function BookRoomPage() {
     const [availableRooms, setAvailableRooms] = useState([]);
     const [loading, setLoading] = useState(false);
     
-    // State untuk input tanggal
     const [checkInDate, setCheckInDate] = useState('');
     const [checkOutDate, setCheckOutDate] = useState('');
 
-    // State untuk menandai apakah pencarian sudah pernah dilakukan
     const [hasSearched, setHasSearched] = useState(false);
     const [duration, setDuration] = useState(0);
 
@@ -34,6 +32,27 @@ function BookRoomPage() {
     
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState(null);
+
+    // --- PERBAIKAN 1: Logika untuk membatasi tanggal ---
+    const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+    const minCheckoutDate = useMemo(() => {
+        if (!checkInDate) return '';
+        const nextDay = new Date(checkInDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        return nextDay.toISOString().split('T')[0];
+    }, [checkInDate]);
+
+    const handleCheckInChange = (e) => {
+        const newCheckInDate = e.target.value;
+        setCheckInDate(newCheckInDate);
+
+        // Jika tanggal check-out yang ada menjadi tidak valid, reset
+        if (checkOutDate && new Date(checkOutDate) <= new Date(newCheckInDate)) {
+            setCheckOutDate('');
+        }
+    };
+
 
     const handleAvailabilitySearch = async () => {
         if (!checkInDate || !checkOutDate) {
@@ -57,34 +76,29 @@ function BookRoomPage() {
                 }
             });
             
-            // --- PERBAIKAN BARU: Menangani respons objek dari API ---
             if (response.data && Array.isArray(response.data.rooms)) {
-                // Ambil array 'rooms' dari dalam objek respons
                 setDuration(response.data.duration || 0);
                 setAvailableRooms(response.data.rooms); 
                 if (response.data.rooms.length === 0) {
                     toast('Tidak ada kamar tersedia pada tanggal tersebut, coba tanggal lain.', { icon: 'ℹ️' });
                 }
             } else {
-                // Jika format respons tidak sesuai atau tidak ada properti 'rooms'
                 console.error("API tidak mengembalikan format yang diharapkan:", response.data);
-                setAvailableRooms([]); // Pastikan state tetap array
+                setAvailableRooms([]);
                 toast.error("Terjadi kesalahan saat memproses data dari server.");
             }
 
         } catch (error) {
-            // Tangani error jaringan atau server
             toast.error(error.response?.data?.message || 'Gagal mengambil data ketersediaan kamar');
-            setAvailableRooms([]); // Pastikan state tetap array saat error
+            setAvailableRooms([]);
         } finally {
             setLoading(false);
         }
     };
 
     const filteredRooms = useMemo(() => {
-        // Karena availableRooms sekarang dijamin array, ini aman.
         return availableRooms.filter(room => {
-            const price = room.starting_price; 
+            const price = room.total_price; 
             const { min, max } = filters.price;
             if (min !== null && price < min) return false;
             if (max !== null && price > max) return false;
@@ -108,13 +122,6 @@ function BookRoomPage() {
         });
         return [...allFacilities];
     }, [availableRooms]);
-
-    const numberOfNights = useMemo(() => {
-        if (!checkInDate || !checkOutDate) return 0;
-        const diffTime = new Date(checkOutDate) - new Date(checkInDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays > 0 ? diffDays : 0;
-    }, [checkInDate, checkOutDate]);
 
     const handleOpenModal = (room) => {
         setSelectedRoom(room);
@@ -151,11 +158,26 @@ function BookRoomPage() {
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8 flex flex-col md:flex-row items-center gap-4">
                 <div className="flex-1 w-full">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Check-in</label>
-                    <input type="date" value={checkInDate} onChange={e => setCheckInDate(e.target.value)} className="input-style dark:bg-slate-900 dark:text-white text-slate-900" />
+                    {/* --- PERBAIKAN 2: Tambahkan 'min' dan 'onChange' --- */}
+                    <input 
+                        type="date" 
+                        value={checkInDate} 
+                        onChange={handleCheckInChange}
+                        min={today}
+                        className="input-style dark:bg-slate-900 dark:text-white text-slate-900" 
+                    />
                 </div>
                 <div className="flex-1 w-full">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Check-out</label>
-                    <input type="date" value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} className="input-style dark:bg-slate-900 dark:text-white text-slate-900" />
+                     {/* --- PERBAIKAN 3: Tambahkan 'min' dan 'disabled' --- */}
+                    <input 
+                        type="date" 
+                        value={checkOutDate} 
+                        onChange={e => setCheckOutDate(e.target.value)}
+                        min={minCheckoutDate}
+                        disabled={!checkInDate} // Nonaktifkan jika check-in belum dipilih
+                        className="input-style dark:bg-slate-900 dark:text-white text-slate-900" 
+                    />
                 </div>
                 <button onClick={handleAvailabilitySearch} disabled={loading} className="btn-primary w-full md:w-auto mt-4 md:mt-0 self-end">
                     <Search size={18} className="mr-2" />
@@ -175,13 +197,18 @@ function BookRoomPage() {
                     />
                     <p className="my-6 text-gray-600 dark:text-gray-200">
                         {filteredRooms.length > 0
-                            ? `Menampilkan ${filteredRooms.length} kamar yang tersedia untuk ${numberOfNights} malam.`
+                            ? `Menampilkan ${filteredRooms.length} kamar yang tersedia untuk ${duration} malam.`
                             : `Tidak ada kamar yang cocok dengan filter Anda.`
                         }
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {filteredRooms.map(room => (
-                            <UserRoomCard key={room.id} room={room} onBook={handleOpenModal} numberOfNights={duration} />
+                            <UserRoomCard 
+                                key={room.id} 
+                                room={room} 
+                                onBook={handleOpenModal} 
+                                numberOfNights={duration} 
+                            />
                         ))}
                     </div>
                 </>

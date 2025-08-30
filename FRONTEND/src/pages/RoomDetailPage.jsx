@@ -1,26 +1,29 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react'; // <-- 1. Import useMemo & useCallback
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useParams, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { ArrowLeft } from 'lucide-react';
 
+// Komponen-komponen UI
 import ReviewList from '../components/ReviewList';
 import ReviewForm from '../components/ReviewForm';
 import StarRating from '../components/StarRating';
 
 function RoomDetailPage() {
-  const { roomId } = useParams();
+  const { id: roomId } = useParams(); 
+  const navigate = useNavigate();
+  
   const [room, setRoom] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [canReview, setCanReview] = useState(false);
+  const [reviewableBookingId, setReviewableBookingId] = useState(null);
   const [mainImage, setMainImage] = useState('');
 
   const token = localStorage.getItem('token');
-  // 2. Stabilkan objek userInfo dengan useMemo
   const userInfo = useMemo(() => (token ? { token } : null), [token]);
 
-  // 3. Bungkus fungsi fetch data dengan useCallback
   const fetchRoomData = useCallback(async () => {
     if (!roomId) return;
     setLoading(true);
@@ -28,41 +31,42 @@ function RoomDetailPage() {
         const roomUrl = `http://localhost:5001/api/public/rooms/${roomId}`;
         const reviewsUrl = `http://localhost:5001/api/public/rooms/${roomId}/reviews`;
 
-        const apiCalls = [
+        const [roomResponse, reviewsResponse] = await Promise.all([
             axios.get(roomUrl),
             axios.get(reviewsUrl)
-        ];
+        ]);
+        
+        const roomData = roomResponse.data;
+        setRoom(roomData);
+        setReviews(reviewsResponse.data);
+
+        if (roomData.images && roomData.images.length > 0) {
+            setMainImage(roomData.images[0].image_url);
+        } else {
+            setMainImage('');
+        }
 
         if (userInfo) {
             const canReviewUrl = `http://localhost:5001/api/public/rooms/${roomId}/can-review`;
             const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
-            apiCalls.push(axios.get(canReviewUrl, config));
-        }
-
-        const responses = await Promise.all(apiCalls);
-        
-        const roomData = responses[0].data;
-        setRoom(roomData);
-        setReviews(responses[1].data);
-
-        if (roomData.images && roomData.images.length > 0) {
-            setMainImage(roomData.images[0].image_url);
-        }
-
-        if (responses.length > 2) {
-            setCanReview(responses[2].data.canReview);
+            const canReviewResponse = await axios.get(canReviewUrl, config);
+            
+            setCanReview(canReviewResponse.data.canReview);
+            if (canReviewResponse.data.canReview) {
+              setReviewableBookingId(canReviewResponse.data.bookingId);
+            }
         }
 
     } catch (error) {
-        toast.error(error.response?.data?.message||"Gagal mengambil data detail kamar.");
+        toast.error(error.response?.data?.message || "Gagal mengambil data detail kamar.");
     } finally {
         setLoading(false);
     }
-  }, [roomId, userInfo]); // Dependensi untuk useCallback
+  }, [roomId, userInfo]);
 
   useEffect(() => {
     fetchRoomData();
-  }, [fetchRoomData]); // 4. useEffect sekarang bergantung pada fungsi yang stabil
+  }, [fetchRoomData]);
 
   const handleReviewSubmit = async ({ rating, comment }) => {
     setSubmitLoading(true);
@@ -72,10 +76,10 @@ function RoomDetailPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${userInfo.token}` },
       };
       const reviewUrl = `http://localhost:5001/api/public/rooms/${roomId}/reviews`;
-      await axios.post(reviewUrl, { rating, comment }, config);
+      
+      await axios.post(reviewUrl, { rating, comment, bookingId: reviewableBookingId }, config);
       
       toast.success('Ulasan Anda berhasil dikirim!', { id: toastId });
-      // Panggil ulang fetchRoomData untuk refresh semuanya
       fetchRoomData(); 
     } catch (error) {
       toast.error(error.response?.data?.message || 'Gagal mengirim ulasan.', { id: toastId });
@@ -84,17 +88,21 @@ function RoomDetailPage() {
     }
   };
 
-  if (loading) return <p className="text-center mt-20 text-xl">Memuat Detail Kamar...</p>;
-  if (!room) return <p className="text-center mt-20 text-xl">Kamar tidak ditemukan.</p>;
+  if (loading) return <p className="text-center mt-20 text-xl dark:text-gray-300">Memuat Detail Kamar...</p>;
+  if (!room) return <p className="text-center mt-20 text-xl dark:text-gray-300">Kamar tidak ditemukan.</p>;
 
   const getFullImageUrl = (url) => {
       if (!url) return 'https://placehold.co/1200x600?text=Gambar+Tidak+Tersedia';
-      return `http://localhost:5001${url}`;
+      if (url.startsWith('/uploads')) {
+        return `http://localhost:5001${url}`;
+      }
+      return url;
   };
 
   return (
     <div className="container mx-auto p-4 md:p-8">
-      {/* --- BAGIAN GALERI FOTO --- */}
+      {/* Tombol kembali yang lama sudah dihapus dari sini */}
+
       <div className="mb-8">
         <div className="mb-4">
             <img 
@@ -117,21 +125,22 @@ function RoomDetailPage() {
             </div>
         )}
       </div>
-      
-      {/* Bagian Detail Kamar */}
       <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{room.name}</h1>
         <div className="flex items-center my-3">
           <StarRating value={room.averageRating} />
-          <span className="ml-3 text-gray-600 dark:text-gray-300">({room.numReviews} ulasan)</span>
+          <span className="ml-3 text-gray-600 dark:text-gray-300">({room.numReviews || 0} ulasan)</span>
         </div>
         <p className="text-gray-700 dark:text-gray-300 mt-4 text-lg">{room.description}</p>
-        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-4">Rp {Number(room.price).toLocaleString('id-ID')}</p>
+        {room.price ? (
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-4">
+                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(room.price)} / malam
+            </p>
+        ) : (
+            <p className="text-lg text-gray-500 dark:text-gray-400 mt-4">Harga tersedia saat pencarian tanggal.</p>
+        )}
       </div>
-
       <hr className="my-10 border-gray-300 dark:border-gray-600" />
-
-      {/* Bagian Ulasan */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
           <ReviewList reviews={reviews} />
@@ -158,8 +167,20 @@ function RoomDetailPage() {
           )}
         </div>
       </div>
+
+      {/* --- PERBAIKAN: Menggunakan navigate(-1) untuk kembali --- */}
+      <div className="mt-12 text-center">
+        <button 
+          onClick={() => navigate(-1)} 
+          className="btn-secondary inline-flex items-center"
+        >
+          <ArrowLeft size={20} className="mr-2" />
+          Kembali ke Pemilihan Kamar
+        </button>
+      </div>
     </div>
   );
 }
 
 export default RoomDetailPage;
+
