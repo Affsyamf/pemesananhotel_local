@@ -35,3 +35,4 @@ function FeaturedRoomCard({ room }) {
 }
 
 export default FeaturedRoomCard;
+
