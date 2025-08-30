@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { DollarSign, Package, Star, Eye, BedDouble } from 'lucide-react';
 
 // PERBAIKAN: Menghapus 'numberOfNights' yang tidak digunakan
-function UserRoomCard({ room, onBook }) { 
+function UserRoomCard({ room, onBook, numberOfNights }) { 
   const formattedPrice = new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
@@ -27,7 +27,9 @@ function UserRoomCard({ room, onBook }) {
             <DollarSign size={18} className="mr-2 text-green-500" /> 
             <div>
                 <span className="font-semibold text-xl">{formattedPrice}</span>
-                <span className="text-sm text-gray-500"> / malam</span>
+                {numberOfNights > 0 && (
+                <span className="text-sm text-gray-500"> / {numberOfNights} malam</span>
+              )}
             </div>
           </div>
 

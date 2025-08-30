@@ -24,6 +24,7 @@ function BookRoomPage() {
 
     // State untuk menandai apakah pencarian sudah pernah dilakukan
     const [hasSearched, setHasSearched] = useState(false);
+    const [duration, setDuration] = useState(0);
 
     const [filters, setFilters] = useState({
         price: { min: null, max: null },
@@ -59,6 +60,7 @@ function BookRoomPage() {
             // --- PERBAIKAN BARU: Menangani respons objek dari API ---
             if (response.data && Array.isArray(response.data.rooms)) {
                 // Ambil array 'rooms' dari dalam objek respons
+                setDuration(response.data.duration || 0);
                 setAvailableRooms(response.data.rooms); 
                 if (response.data.rooms.length === 0) {
                     toast('Tidak ada kamar tersedia pada tanggal tersebut, coba tanggal lain.', { icon: 'ℹ️' });
@@ -179,7 +181,7 @@ function BookRoomPage() {
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {filteredRooms.map(room => (
-                            <UserRoomCard key={room.id} room={room} onBook={handleOpenModal} />
+                            <UserRoomCard key={room.id} room={room} onBook={handleOpenModal} numberOfNights={duration} />
                         ))}
                     </div>
                 </>
