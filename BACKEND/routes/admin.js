@@ -68,15 +68,21 @@ router.get('/rooms', async (req, res) => {
     try {
         const sql = `
             SELECT 
-                r.*, 
+                r.*,
+                COALESCE(ra.price, 0) AS price, 
+                COALESCE(ra.available_quantity, 0) AS available_quantity,
                 (SELECT ri.image_url FROM room_images ri WHERE ri.room_id = r.id ORDER BY ri.id ASC LIMIT 1) as image_url
-            FROM rooms r
-            ORDER BY r.created_at DESC;
+            FROM 
+                rooms r
+            LEFT JOIN 
+                room_availability ra ON r.id = ra.room_id AND ra.date = CURDATE()
+            ORDER BY 
+                r.created_at DESC;
         `;
         const [rooms] = await db.query(sql);
         res.json(rooms);
     } catch (error) {
-        console.error(error);
+        console.error("Error fetching admin rooms:", error);
         res.status(500).json({ message: 'Server Error' });
     }
 });

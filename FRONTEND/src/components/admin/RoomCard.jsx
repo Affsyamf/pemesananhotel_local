@@ -28,7 +28,7 @@ function RoomCard({ room, onEdit, onDelete, onGallery }) {
           </div>
           <div className="flex items-center">
             <Package size={16} className="mr-2 text-blue-500" />
-            <span>Tersedia: {room.quantity} kamar</span>
+            <span>Tersedia: {room.available_quantity} kamar</span>
           </div>
           <div className="flex items-start">
             <BedDouble size={16} className="mr-2 text-purple-500 mt-1" />
