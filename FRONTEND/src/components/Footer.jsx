@@ -16,7 +16,7 @@ function Footer() {
             <div className="flex mt-4 space-x-4">
               <a href="#" className="text-gray-400 hover:text-blue-500"><Facebook size={20} /></a>
               <a href="#" className="text-gray-400 hover:text-blue-500"><Twitter size={20} /></a>
-              <a href="#" className="text-gray-400 hover:text-blue-500"><Instagram size={20} /></a>
+              <a href="https://www.instagram.com/affsyamf/?next=%2F" target='_blank' className="text-gray-400 hover:text-blue-500"><Instagram size={20} /></a>
             </div>
           </div>
 
@@ -63,8 +63,8 @@ function Footer() {
           <div>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white tracking-wider uppercase">Legal</h3>
             <ul className="mt-4 space-y-2">
-              <li><a href="#" className="text-base text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Kebijakan Privasi</a></li>
-              <li><a href="#" className="text-base text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Syarat & Ketentuan</a></li>
+              <li><a href="/KP.pdf" target='_blank' className="text-base text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Kebijakan Privasi</a></li>
+              <li><a href="/SK.pdf" target='_blank' className="text-base text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">Syarat & Ketentuan</a></li>
             </ul>
           </div>
 
