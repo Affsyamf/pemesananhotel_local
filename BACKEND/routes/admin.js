@@ -539,5 +539,61 @@ router.delete('/promos/:id', async (req, res) => {
     }
 });
 
+router.get('/sales-chart-data', async (req, res) => {
+    try {
+        // --- PERBAIKAN: Menggunakan COALESCE untuk menangani NULL pada final_price ---
+        const todaySql = `
+            SELECT 
+                HOUR(created_at) as hour, 
+                SUM(COALESCE(final_price, total_price)) as total
+            FROM bookings 
+            WHERE 
+                status = 'confirmed' AND DATE(created_at) = CURDATE()
+            GROUP BY HOUR(created_at)
+            ORDER BY hour ASC;
+        `;
+
+        const yesterdaySql = `
+            SELECT 
+                HOUR(created_at) as hour, 
+                SUM(COALESCE(final_price, total_price)) as total
+            FROM bookings 
+            WHERE 
+                status = 'confirmed' AND DATE(created_at) = CURDATE() - INTERVAL 1 DAY
+            GROUP BY HOUR(created_at)
+            ORDER BY hour ASC;
+        `;
+
+        const [todayResults] = await db.query(todaySql);
+        const [yesterdayResults] = await db.query(yesterdaySql);
+
+        const todayData = todayResults.reduce((acc, row) => ({ ...acc, [row.hour]: row.total }), {});
+        const yesterdayData = yesterdayResults.reduce((acc, row) => ({ ...acc, [row.hour]: row.total }), {});
+
+        const chartData = [];
+        let cumulativeToday = 0;
+        let cumulativeYesterday = 0;
+        const currentHour = new Date().getHours();
+
+        for (let i = 0; i <= 23; i++) {
+            const hour = (currentHour - 23 + i + 24) % 24;
+            
+            cumulativeToday += parseFloat(todayData[hour] || 0);
+            cumulativeYesterday += parseFloat(yesterdayData[hour] || 0);
+
+            chartData.push({
+                hour: `${hour}:00`,
+                'Hari Ini': cumulativeToday,
+                'Kemarin': cumulativeYesterday,
+            });
+        }
+        
+        res.json(chartData);
+
+    } catch (error) {
+        console.error("Error fetching sales chart data:", error);
+        res.status(500).json({ message: 'Server Error saat mengambil data grafik' });
+    }
+});
 
 module.exports = router;
