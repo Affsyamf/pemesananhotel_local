@@ -32,7 +32,6 @@ function AdminRoomFilter({ filters, setFilters, availableTypes }) {
       className="input-style w-full pl-50 dark:bg-gray-700 dark:text-gray-300" 
     />
     <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-      <Search className="h-5 w-5 text-gray-400" />
     </span>
   </div>
 </div>

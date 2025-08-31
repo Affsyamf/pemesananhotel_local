@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Trash2, CheckCircle, XCircle, Search } from 'lucide-react';
 import ConfirmationModal from '../components/admin/ConfirmationModal';
 import Pagination from '../components/admin/Pagination';
 
@@ -16,20 +16,33 @@ function ManageBookingsPage() {
     const [bookingToDelete, setBookingToDelete] = useState(null);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
+    const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
     const [bookingToReject, setBookingToReject] = useState(null);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
     
-    const fetchBookings = async (page) => {
+    useEffect(() => {
+        const timerId = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+            setCurrentPage(1); // Reset ke halaman pertama setiap kali ada pencarian baru
+        }, 500); // Tunggu 500ms setelah pengguna berhenti mengetik
+
+        return () => {
+            clearTimeout(timerId);
+        };
+    }, [searchTerm]);
+
+    const fetchBookings = async (page, search) => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(`http://localhost:5001/api/admin/bookings?page=${page}&limit=10`, {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { Authorization: `Bearer ${token}` },
+                params: { page, limit: 10, search }
             });
-            
             // --- LANGKAH DIAGNOSTIK: Tampilkan data mentah dari server di console ---
-            console.log("Data yang diterima dari server:", response.data);
-            
+            // console.log("Data yang diterima dari server:", response.data);
             setPageData(response.data);
         } catch (error) {
             toast.error(error.response?.data?.message || 'Gagal mengambil data pesanan.');
@@ -39,8 +52,8 @@ function ManageBookingsPage() {
     };
 
     useEffect(() => {
-        fetchBookings(currentPage); 
-    }, [currentPage]);
+        fetchBookings(currentPage, debouncedSearchTerm); 
+    }, [currentPage, debouncedSearchTerm]);
 
     const handlePageChange = (page) => {
         setCurrentPage(page);
@@ -117,6 +130,20 @@ function ManageBookingsPage() {
     return (
         <div className="container mx-auto p-6 md:p-10">
             <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-200 mb-8">Kelola Semua Pesanan</h1>
+
+        {/* FITUR search */}
+        <div className="mb-6">
+                <div className="relative w-full max-w-xs">
+                    <input
+                        type="text"
+                        placeholder="Cari nama pemesan..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="input-style pl-10 w-full dark:bg-slate-900"
+                    />
+                </div>
+            </div>
+
 
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
                 <div className="overflow-x-auto">

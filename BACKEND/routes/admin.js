@@ -166,12 +166,23 @@ router.delete('/rooms/:id', async (req, res) => {
 // === CRUD BOOKINGS ===
 router.get('/bookings', async (req, res) => {
     try {
-        // 1. Ambil parameter halaman dan batas dari URL, dengan nilai default
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
         const offset = (page - 1) * limit;
+        // --- FITUR BARU: Ambil parameter pencarian ---
+        const { search } = req.query;
 
-        // 2. Query utama untuk mengambil data per halaman
+        let whereClause = '';
+        const params = [];
+
+        // Jika ada query pencarian, bangun klausa WHERE
+        if (search) {
+            whereClause = 'WHERE u.username LIKE ? OR b.guest_name LIKE ?';
+            const searchTerm = `%${search}%`;
+            params.push(searchTerm, searchTerm);
+        }
+
+        // Query utama untuk mengambil data, sekarang dengan WHERE dinamis
         const bookingsSql = `
             SELECT b.id, b.guest_name, b.status, b.created_at, b.check_in_date, b.check_out_date,
                    u.username AS user_username,
@@ -179,15 +190,23 @@ router.get('/bookings', async (req, res) => {
             FROM bookings b
             JOIN users u ON b.user_id = u.id
             JOIN rooms r ON b.room_id = r.id
+            ${whereClause}
             ORDER BY b.created_at DESC
             LIMIT ? OFFSET ?;
         `;
-        const [bookings] = await db.query(bookingsSql, [limit, offset]);
+        // Tambahkan limit dan offset ke parameter setelah parameter pencarian
+        const queryParams = [...params, limit, offset];
+        const [bookings] = await db.query(bookingsSql, queryParams);
         
-        // 3. Query kedua untuk menghitung TOTAL semua pesanan
-        const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM bookings');
+        // Query kedua untuk menghitung total, juga dengan WHERE dinamis
+        const countSql = `
+            SELECT COUNT(*) as total 
+            FROM bookings b 
+            JOIN users u ON b.user_id = u.id 
+            ${whereClause};
+        `;
+        const [[{ total }]] = await db.query(countSql, params);
 
-        // 4. Kirim respons dalam format yang benar yang diharapkan oleh frontend
         res.json({
             data: bookings,
             totalPages: Math.ceil(total / limit),
