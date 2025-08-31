@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Plus } from 'lucide-react';
@@ -13,9 +13,15 @@ function ManageUsersPage() {
        totalPages: 1,
        currentPage: 1
    });
-   const [loading, setLoading] = useState(true);
-   const [currentPage, setCurrentPage] = useState(1);
+
+
+const [loading, setLoading] = useState(true);
+const [currentPage, setCurrentPage] = useState(1);
  
+ // --- State Baru untuk Fitur Pencarian ---
+const [searchTerm, setSearchTerm] = useState('');
+const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+   
  // State untuk modal form (Tambah/Edit)
  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
  const [editingUser, setEditingUser] = useState(null);
@@ -24,24 +30,37 @@ function ManageUsersPage() {
  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
  const [userToDelete, setUserToDelete] = useState(null);
 
-   const fetchUsers = useCallback(async (page) => {
+ // Efek untuk menerapkan debounce pada input pencarian
+    useEffect(() => {
+        const timerId = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+            setCurrentPage(1); // Reset ke halaman pertama setiap kali ada pencarian baru
+        }, 500); // Tunggu 500ms setelah pengguna berhenti mengetik
+
+        return () => {
+            clearTimeout(timerId);
+        };
+    }, [searchTerm]);
+
+   const fetchUsers = async (page, search) => {
        setLoading(true);
        try {
            const token = localStorage.getItem('token');
-           const response = await axios.get(`http://localhost:5001/api/admin/users?page=${page}&limit=10`, {
-               headers: { Authorization: `Bearer ${token}` }
+           const response = await axios.get(`http://localhost:5001/api/admin/users`, {
+               headers: { Authorization: `Bearer ${token}` },
+               params: { page, limit: 10, search } // Kirim parameter pencarian ke API
            });
-           setPageData(response.data); // Simpan seluruh objek respon
+           setPageData(response.data);
        } catch (error) {
-           toast.error(error.response?.data?.message||'Gagal mengambil data pengguna.');
+           toast.error(error.response?.data?.message || 'Gagal mengambil data pengguna.');
        } finally {
            setLoading(false);
        }
-   }, []);
+   };
 
-   useEffect(() => {
-       fetchUsers(currentPage);
-   }, [currentPage, fetchUsers]);
+  useEffect(() => {
+       fetchUsers(currentPage, debouncedSearchTerm);
+   }, [currentPage, debouncedSearchTerm]);
 
    const handlePageChange = (page) => {
        setCurrentPage(page);
@@ -73,7 +92,7 @@ function ManageUsersPage() {
            toast.success('User baru berhasil ditambahkan', { id: toastId });
        }
        // PERBAIKAN 2: Kirim currentPage saat fetch ulang
-       fetchUsers(currentPage);
+       fetchUsers(currentPage, debouncedSearchTerm);
        handleCloseFormModal();
    } catch (error) {
        toast.error(error.response?.data?.message || 'Gagal menyimpan data', { id: toastId });
@@ -101,7 +120,7 @@ function ManageUsersPage() {
      });
      toast.success('User berhasil dihapus', { id: toastId });
      // PERBAIKAN 3: Kirim currentPage saat fetch ulang
-     fetchUsers(currentPage);
+     fetchUsers(currentPage, debouncedSearchTerm);
      closeDeleteModal();
    } catch (error) {
      toast.error(error?.response?.data?.message||'Gagal menghapus user', { id: toastId });
@@ -117,6 +136,19 @@ function ManageUsersPage() {
          Tambah User
        </button>
      </div>
+
+{/*  UI Search */}
+      <div className="mb-6">
+                <div className="relative w-full max-w-xs">
+                    <input
+                        type="text"
+                        placeholder="Cari nama atau email..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="input-style w-full dark:bg-slate-900"
+                    />
+                </div>
+            </div>
      
      <div className="bg-white p-6 rounded-lg shadow-md dark:bg-gray-800">
         {loading ? <p className="text-center dark:text-gray-300">Loading...</p> : (

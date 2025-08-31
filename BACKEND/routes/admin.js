@@ -28,17 +28,40 @@ router.get('/users', async (req, res) => {
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
         const offset = (page - 1) * limit;
-        const [users] = await db.query(
-            'SELECT id, username, email, role FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?',
-            [limit, offset]
-        );
-        const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM users');
+        const { search } = req.query;
+
+        let whereClause = '';
+        const params = [];
+
+        // Jika ada parameter pencarian, bangun klausa WHERE
+        if (search) {
+            whereClause = 'WHERE username LIKE ? OR email LIKE ?';
+            const searchTerm = `%${search}%`;
+            params.push(searchTerm, searchTerm);
+        }
+
+        // Query utama untuk mengambil data pengguna per halaman
+        const usersSql = `
+            SELECT id, username, email, role 
+            FROM users 
+            ${whereClause} 
+            ORDER BY created_at DESC 
+            LIMIT ? OFFSET ?;
+        `;
+        const queryParams = [...params, limit, offset];
+        const [users] = await db.query(usersSql, queryParams);
+        
+        // Query kedua untuk menghitung total pengguna yang cocok
+        const countSql = `SELECT COUNT(*) as total FROM users ${whereClause}`;
+        const [[{ total }]] = await db.query(countSql, params);
+        
         res.json({
             data: users,
             totalPages: Math.ceil(total / limit),
             currentPage: page
         });
     } catch (error) {
+        console.error("Error fetching users:", error);
         res.status(500).json({ message: 'Server Error' });
     }
 });
