@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Trash2, CheckCircle, XCircle } from 'lucide-react';
 import ConfirmationModal from '../components/admin/ConfirmationModal';
-import Pagination from '../components/admin/Pagination'; // <-- Import komponen paginasi
+import Pagination from '../components/admin/Pagination';
 
 function ManageBookingsPage() {
-    // PERBAIKAN 1: State diubah untuk menampung data paginasi
     const [pageData, setPageData] = useState({
         data: [],
         totalPages: 1,
@@ -19,32 +18,34 @@ function ManageBookingsPage() {
 
     const [bookingToReject, setBookingToReject] = useState(null);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
-    const fetchBookings = useCallback(async (page) => {
+    
+    const fetchBookings = async (page) => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            // PERBAIKAN 2: URL sekarang menyertakan parameter page & limit
             const response = await axios.get(`http://localhost:5001/api/admin/bookings?page=${page}&limit=10`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            // PERBAIKAN 3: Simpan seluruh objek respon, bukan hanya data
+            
+            // --- LANGKAH DIAGNOSTIK: Tampilkan data mentah dari server di console ---
+            console.log("Data yang diterima dari server:", response.data);
+            
             setPageData(response.data);
         } catch (error) {
-            toast.error(error.response?.data?.message||'Gagal mengambil data pesanan.');
+            toast.error(error.response?.data?.message || 'Gagal mengambil data pesanan.');
         } finally {
             setLoading(false);
         }
-    }, []);
+    };
 
     useEffect(() => {
         fetchBookings(currentPage); 
-    }, [currentPage, fetchBookings]);
+    }, [currentPage]);
 
-      const handlePageChange = (page) => {
+    const handlePageChange = (page) => {
         setCurrentPage(page);
     };
 
-     // --- FUNGSI UNTUK MENYETUJUI PESANAN ---
     const handleApproveBooking = async (bookingId) => {
         const toastId = toast.loading('Menyetujui pesanan...');
         try {
@@ -53,7 +54,7 @@ function ManageBookingsPage() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast.success('Pesanan berhasil disetujui.', { id: toastId });
-            fetchBookings(currentPage); // Refresh data untuk melihat status baru
+            fetchBookings(currentPage);
         } catch (error) {
             toast.error(error.response?.data?.message || 'Gagal menyetujui pesanan.', { id: toastId });
         }
@@ -78,7 +79,7 @@ function ManageBookingsPage() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast.success('Pesanan berhasil ditolak.', { id: toastId });
-            fetchBookings(currentPage); // Refresh data
+            fetchBookings(currentPage);
             closeRejectModal();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Gagal menolak pesanan.', { id: toastId });
@@ -104,10 +105,10 @@ function ManageBookingsPage() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast.success('Pesanan berhasil dihapus.', { id: toastId });
-            fetchBookings(currentPage); // Refresh data di halaman saat ini
+            fetchBookings(currentPage);
             closeDeleteModal();
         } catch (error) {
-            toast.error(error.response?.data?.message||'Gagal menghapus pesanan.', { id: toastId });
+            toast.error(error.response?.data?.message || 'Gagal menghapus pesanan.', { id: toastId });
         }
     };
 
@@ -136,7 +137,6 @@ function ManageBookingsPage() {
                             {loading ? (
                                 <tr><td colSpan="8" className="text-center p-4">Memuat data...</td></tr>
                             ) : (
-                                // PERBAIKAN 4: Gunakan pageData.data untuk me-render
                                 pageData.data.map(booking => (
                                     <tr key={booking.id}>
                                         <td className="td-style text-center dark:text-white font-mono">#{booking.id}</td>
@@ -154,17 +154,16 @@ function ManageBookingsPage() {
                                                 {booking.status}
                                             </span>
                                         </td>
-                                         <td className="td-style">
-                                            <div className="flex items-center space-x-2">
-                                                {/* --- TOMBOL AKSI KONDISIONAL --- */}
+                                        <td className="td-style">
+                                            <div className="flex items-center justify-center space-x-2">
                                                 {booking.status === 'pending' && (
                                                   <>
                                                     <button onClick={() => handleApproveBooking(booking.id)} className="text-green-600 hover:text-green-800" title="Setujui Pesanan">
                                                         <CheckCircle size={18} />
                                                     </button>
                                                     <button onClick={() => openRejectModal(booking)} className="text-yellow-600 hover:text-yellow-800" title="Tolak Pesanan">
-                                                            <XCircle size={18} />
-                                                        </button>
+                                                        <XCircle size={18} />
+                                                    </button>
                                                   </>
                                                 )}
                                                 <button onClick={() => openDeleteModal(booking)} className="text-red-600 hover:text-red-800" title="Hapus Pesanan">
@@ -178,7 +177,6 @@ function ManageBookingsPage() {
                         </tbody>
                     </table>
                 </div>
-                {/* PERBAIKAN 5: Tambahkan komponen Pagination */}
                 <Pagination
                     currentPage={pageData.currentPage}
                     totalPages={pageData.totalPages}
@@ -186,7 +184,7 @@ function ManageBookingsPage() {
                 />
             </div>
             
-             <ConfirmationModal
+            <ConfirmationModal
                 isOpen={isRejectModalOpen}
                 onClose={closeRejectModal}
                 onConfirm={confirmReject}
@@ -206,3 +204,4 @@ function ManageBookingsPage() {
 }
 
 export default ManageBookingsPage;
+

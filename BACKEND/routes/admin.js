@@ -166,29 +166,36 @@ router.delete('/rooms/:id', async (req, res) => {
 // === CRUD BOOKINGS ===
 router.get('/bookings', async (req, res) => {
     try {
+        // 1. Ambil parameter halaman dan batas dari URL, dengan nilai default
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
         const offset = (page - 1) * limit;
-        const [bookings] = await db.query(`
-            SELECT 
-                b.id, b.guest_name, b.status,
-                b.created_at, b.check_in_date, b.check_out_date,
-                u.username AS user_username,
-                r.name AS room_name
+
+        // 2. Query utama untuk mengambil data per halaman
+        const bookingsSql = `
+            SELECT b.id, b.guest_name, b.status, b.created_at, b.check_in_date, b.check_out_date,
+                   u.username AS user_username,
+                   r.name AS room_name
             FROM bookings b
             JOIN users u ON b.user_id = u.id
             JOIN rooms r ON b.room_id = r.id
             ORDER BY b.created_at DESC
-            LIMIT ? OFFSET ?
-        `, [limit, offset]);
+            LIMIT ? OFFSET ?;
+        `;
+        const [bookings] = await db.query(bookingsSql, [limit, offset]);
+        
+        // 3. Query kedua untuk menghitung TOTAL semua pesanan
         const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM bookings');
+
+        // 4. Kirim respons dalam format yang benar yang diharapkan oleh frontend
         res.json({
             data: bookings,
             totalPages: Math.ceil(total / limit),
             currentPage: page
         });
+        
     } catch (error) {
-        console.error(error);
+        console.error("Error fetching bookings:", error);
         res.status(500).json({ message: 'Server Error' });
     }
 });
