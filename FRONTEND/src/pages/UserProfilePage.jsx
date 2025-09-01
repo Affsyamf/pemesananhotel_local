@@ -3,6 +3,8 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { User, Lock, Save } from 'lucide-react';
 
+
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function UserProfilePage() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -17,7 +19,7 @@ function UserProfilePage() {
         const fetchUserProfile = async () => {
             const token = localStorage.getItem('token');
             try {
-                const response = await axios.get('http://localhost:5001/api/auth/profile', {
+                const response = await axios.get(`${API_URL}/api/auth/profile`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setUser(response.data);
@@ -51,7 +53,7 @@ function UserProfilePage() {
         const toastId = toast.loading('Menyimpan password baru...');
         const token = localStorage.getItem('token');
         try {
-            await axios.put('http://localhost:5001/api/auth/change-password', {
+            await axios.put(`${API_URL}/api/auth/change-password`, {
                 oldPassword: passwords.oldPassword,
                 newPassword: passwords.newPassword
             }, {

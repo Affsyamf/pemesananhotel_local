@@ -3,6 +3,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { X, Trash2, ImageOff, Loader, UploadCloud } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function GalleryModal({ isOpen, onClose, room }) {
     const [images, setImages] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -14,7 +15,7 @@ function GalleryModal({ isOpen, onClose, room }) {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`http://localhost:5001/api/admin/rooms/${room.id}/images`, {
+            const response = await axios.get(`${API_URL}/api/admin/rooms/${room.id}/images`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setImages(response.data);
@@ -48,7 +49,7 @@ function GalleryModal({ isOpen, onClose, room }) {
         const toastId = toast.loading('Mengunggah gambar...');
         try {
             const token = localStorage.getItem('token');
-            await axios.post(`http://localhost:5001/api/admin/rooms/${room.id}/upload-image`, formData, {
+            await axios.post(`${API_URL}/api/admin/rooms/${room.id}/upload-image`, formData, {
                 headers: { 
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${token}` 
@@ -96,7 +97,7 @@ function GalleryModal({ isOpen, onClose, room }) {
         const toastId = toast.loading('Menghapus gambar...');
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:5001/api/admin/images/${imageId}`, {
+            await axios.delete(`${API_URL}/api/admin/images/${imageId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setImages(prevImages => prevImages.filter(img => img.id !== imageId));
@@ -126,7 +127,7 @@ function GalleryModal({ isOpen, onClose, room }) {
                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                                 {images.map(image => (
                                     <div key={image.id} className="relative group aspect-w-1 aspect-h-1">
-                                        <img src={`http://localhost:5001${image.image_url}`} alt={image.alt_text || room.name} className="w-full h-full object-cover rounded-md" />
+                                        <img src={`${API_URL}:5001${image.image_url}`} alt={image.alt_text || room.name} className="w-full h-full object-cover rounded-md" />
                                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-300 flex justify-center items-center rounded-md">
                                             <button onClick={() => handleDeleteImage(image.id)} className="p-2 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110">
                                                 <Trash2 size={16} />

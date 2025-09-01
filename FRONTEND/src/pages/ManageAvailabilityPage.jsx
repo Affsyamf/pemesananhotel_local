@@ -3,6 +3,8 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
+
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function ManageAvailabilityPage() {
   const [rooms, setRooms] = useState([]);
   const [selectedRoomId, setSelectedRoomId] = useState('');
@@ -16,7 +18,7 @@ function ManageAvailabilityPage() {
     const fetchRooms = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5001/api/admin/rooms', {
+        const response = await axios.get(`${API_URL}/api/admin/rooms`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setRooms(response.data);
@@ -38,7 +40,7 @@ function ManageAvailabilityPage() {
       const token = localStorage.getItem('token');
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth() + 1;
-      const response = await axios.get(`http://localhost:5001/api/admin/availability/${selectedRoomId}?year=${year}&month=${month}`, {
+      const response = await axios.get(`${API_URL}/api/admin/availability/${selectedRoomId}?year=${year}&month=${month}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAvailability(response.data);
@@ -87,7 +89,7 @@ function ManageAvailabilityPage() {
     const toastId = toast.loading('Menyimpan perubahan...');
     try {
         const token = localStorage.getItem('token');
-        await axios.put('http://localhost:5001/api/admin/availability', { updates }, {
+        await axios.put(`${API_URL}/api/admin/availability`, { updates }, {
             headers: { Authorization: `Bearer ${token}` }
         });
         toast.success('Perubahan berhasil disimpan!', { id: toastId });

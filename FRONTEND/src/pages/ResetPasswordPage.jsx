@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Lock } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function ResetPasswordPage() {
     const { token } = useParams(); // Ambil token dari URL
     const navigate = useNavigate();
@@ -22,7 +23,7 @@ function ResetPasswordPage() {
         setLoading(true);
         setMessage('');
         try {
-            const response = await axios.post(`http://localhost:5001/api/auth/reset-password/${token}`, { newPassword });
+            const response = await axios.post(`${API_URL}/api/auth/reset-password/${token}`, { newPassword });
             setMessage(response.data.message);
             toast.success('Password berhasil direset!');
             setTimeout(() => navigate('/login'), 3000); // Arahkan ke login setelah 3 detik

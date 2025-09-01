@@ -5,6 +5,8 @@ import { Trash2, CheckCircle, XCircle, Search } from 'lucide-react';
 import ConfirmationModal from '../components/admin/ConfirmationModal';
 import Pagination from '../components/admin/Pagination';
 
+
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function ManageBookingsPage() {
     const [pageData, setPageData] = useState({
         data: [],
@@ -37,7 +39,7 @@ function ManageBookingsPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`http://localhost:5001/api/admin/bookings?page=${page}&limit=10`, {
+            const response = await axios.get(`${API_URL}/api/admin/bookings?page=${page}&limit=10`, {
                 headers: { Authorization: `Bearer ${token}` },
                 params: { page, limit: 10, search }
             });
@@ -63,7 +65,7 @@ function ManageBookingsPage() {
         const toastId = toast.loading('Menyetujui pesanan...');
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`http://localhost:5001/api/admin/bookings/${bookingId}/confirm`, {}, {
+            await axios.put(`${API_URL}/api/admin/bookings/${bookingId}/confirm`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast.success('Pesanan berhasil disetujui.', { id: toastId });
@@ -88,7 +90,7 @@ function ManageBookingsPage() {
         const toastId = toast.loading('Menolak pesanan...');
         try {
             const token = localStorage.getItem('token');
-            await axios.put(`http://localhost:5001/api/admin/bookings/${bookingToReject.id}/reject`, {}, {
+            await axios.put(`${API_URL}/api/admin/bookings/${bookingToReject.id}/reject`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast.success('Pesanan berhasil ditolak.', { id: toastId });
@@ -114,7 +116,7 @@ function ManageBookingsPage() {
         const toastId = toast.loading('Menghapus pesanan...');
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:5001/api/admin/bookings/${bookingToDelete.id}`, {
+            await axios.delete(`${API_URL}/api/admin/bookings/${bookingToDelete.id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast.success('Pesanan berhasil dihapus.', { id: toastId });

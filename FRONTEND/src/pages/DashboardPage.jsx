@@ -11,6 +11,7 @@ import Footer from '../components/Footer';
 import FeaturedRoomCard from '../components/FeaturedRoomCard';
 import toast from 'react-hot-toast';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function DashboardPage() {
   const [featuredRooms, setFeaturedRooms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +19,7 @@ function DashboardPage() {
   useEffect(() => {
     const fetchFeaturedRooms = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/api/public/featured-rooms');
+        const response = await axios.get(`${API_URL}/api/public/featured-rooms`);
         setFeaturedRooms(response.data);
       } catch (error) {
         console.error("Gagal mengambil data kamar unggulan:", error);

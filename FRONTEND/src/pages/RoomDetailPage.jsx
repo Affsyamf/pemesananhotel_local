@@ -9,6 +9,8 @@ import ReviewList from '../components/ReviewList';
 import ReviewForm from '../components/ReviewForm';
 import StarRating from '../components/StarRating';
 
+
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function RoomDetailPage() {
   const { id: roomId } = useParams(); 
   const navigate = useNavigate();
@@ -28,8 +30,8 @@ function RoomDetailPage() {
     if (!roomId) return;
     setLoading(true);
     try {
-        const roomUrl = `http://localhost:5001/api/public/rooms/${roomId}`;
-        const reviewsUrl = `http://localhost:5001/api/public/rooms/${roomId}/reviews`;
+        const roomUrl = `${API_URL}/api/public/rooms/${roomId}`;
+        const reviewsUrl = `${API_URL}/api/public/rooms/${roomId}/reviews`;
 
         const [roomResponse, reviewsResponse] = await Promise.all([
             axios.get(roomUrl),
@@ -47,7 +49,7 @@ function RoomDetailPage() {
         }
 
         if (userInfo) {
-            const canReviewUrl = `http://localhost:5001/api/public/rooms/${roomId}/can-review`;
+            const canReviewUrl = `${API_URL}/api/public/rooms/${roomId}/can-review`;
             const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
             const canReviewResponse = await axios.get(canReviewUrl, config);
             
@@ -75,7 +77,7 @@ function RoomDetailPage() {
       const config = {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${userInfo.token}` },
       };
-      const reviewUrl = `http://localhost:5001/api/public/rooms/${roomId}/reviews`;
+      const reviewUrl = `${API_URL}/api/public/rooms/${roomId}/reviews`;
       
       await axios.post(reviewUrl, { rating, comment, bookingId: reviewableBookingId }, config);
       
@@ -94,7 +96,7 @@ function RoomDetailPage() {
   const getFullImageUrl = (url) => {
       if (!url) return 'https://placehold.co/1200x600?text=Gambar+Tidak+Tersedia';
       if (url.startsWith('/uploads')) {
-        return `http://localhost:5001${url}`;
+        return `${API_URL}${url}`;
       }
       return url;
   };

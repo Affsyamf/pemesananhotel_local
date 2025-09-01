@@ -4,6 +4,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { CreditCard, Loader, Tag, ArrowLeft } from 'lucide-react'; // Menambahkan ikon Tag & ArrowLeft
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function PaymentPage() {
     const { bookingId } = useParams();
     const navigate = useNavigate();
@@ -20,7 +21,7 @@ function PaymentPage() {
         const fetchBooking = async () => {
             const token = localStorage.getItem('token');
             try {
-                const response = await axios.get(`http://localhost:5001/api/public/booking/${bookingId}`, {
+                const response = await axios.get(`${API_URL}/api/public/booking/${bookingId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setBooking(response.data);
@@ -44,7 +45,7 @@ function PaymentPage() {
         try {
             // --- PERBAIKAN 1: Menambahkan token ke header ---
             const token = localStorage.getItem('token');
-            const response = await axios.post('http://localhost:5001/api/public/promos/verify', 
+            const response = await axios.post(`${API_URL}/api/public/promos/verify`, 
                 { code: promoCode },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -72,7 +73,7 @@ function PaymentPage() {
         const toastId = toast.loading('Memproses pembayaran...');
         const token = localStorage.getItem('token');
         try {
-            await axios.post(`http://localhost:5001/api/public/bookings/${bookingId}/pay`, 
+            await axios.post(`${API_URL}/api/public/bookings/${bookingId}/pay`, 
                 { promoCode: discount > 0 ? promoCode : null },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

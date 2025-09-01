@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { Mail } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function ForgotPasswordPage() {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
@@ -14,7 +15,7 @@ function ForgotPasswordPage() {
         setLoading(true);
         setMessage('');
         try {
-            const response = await axios.post('http://localhost:5001/api/auth/forgot-password', { email });
+            const response = await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
             setMessage(response.data.message);
             toast.success('Permintaan terkirim!');
         } catch (error) {

@@ -3,6 +3,8 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { BarChart, DollarSign, ListChecks, Search, Printer } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 // Fungsi untuk format tanggal ke YYYY-MM-DD
 const formatDate = (date) => new Date(date).toISOString().split('T')[0];
 
@@ -38,7 +40,7 @@ function ReportsPage() {
         setReportData(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5001/api/admin/reports', {
+            const response = await axios.get(`${API_URL}/api/admin/reports`, {
                 params: dates,
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -119,7 +121,7 @@ function ReportsPage() {
                                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                     {reportData.popularRooms.map((room, index) => (
                                         <tr key={room.name}>
-                                            <td className="td-style text-center font-bold dark:text-white text-slate-900 text-center">{index + 1}</td>
+                                            <td className="td-style text-center font-bold dark:text-white text-slate-900">{index + 1}</td>
                                             <td className="td-style font-semibold dark:text-white text-slate-900 text-center">{room.name}</td>
                                             <td className="td-style dark:text-white text-slate-900 text-center">{room.bookingCount}</td>
                                         </tr>

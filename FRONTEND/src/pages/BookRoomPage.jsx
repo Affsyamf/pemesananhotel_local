@@ -7,6 +7,7 @@ import BookingModal from '../components/BookingModal';
 import RoomFilter from '../components/RoomFilter';
 import { Search } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 // Fungsi untuk format tanggal ke YYYY-MM-DD
 const formatDate = (date) => {
     if (!date) return '';
@@ -69,7 +70,7 @@ function BookRoomPage() {
             setHasSearched(true);
             setAvailableRooms([]); 
             
-            const response = await axios.get('http://localhost:5001/api/public/rooms', {
+            const response = await axios.get(`${API_URL}/api/public/rooms`, {
                 params: {
                     checkInDate: formatDate(checkInDate),
                     checkOutDate: formatDate(checkOutDate)
@@ -133,7 +134,7 @@ function BookRoomPage() {
         const toastId = toast.loading('Memproses pesanan...');
         const token = localStorage.getItem('token');
         try {
-           const response = await axios.post('http://localhost:5001/api/public/bookings',
+           const response = await axios.post(`${API_URL}/api/public/bookings`,
                 { 
                     ...data, 
                     room_id: selectedRoom.id, 

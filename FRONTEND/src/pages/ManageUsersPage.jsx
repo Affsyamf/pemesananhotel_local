@@ -7,6 +7,7 @@ import UserFormModal from '../components/admin/UserFormModal';
 import ConfirmationModal from '../components/admin/ConfirmationModal';
 import Pagination from '../components/admin/Pagination';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function ManageUsersPage() {
    const [pageData, setPageData] = useState({
        data: [],
@@ -46,7 +47,7 @@ const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
        setLoading(true);
        try {
            const token = localStorage.getItem('token');
-           const response = await axios.get(`http://localhost:5001/api/admin/users`, {
+           const response = await axios.get(`${API_URL}/api/admin/users`, {
                headers: { Authorization: `Bearer ${token}` },
                params: { page, limit: 10, search } // Kirim parameter pencarian ke API
            });
@@ -82,13 +83,13 @@ const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
    const token = localStorage.getItem('token');
    try {
        if (editingUser) {
-           await axios.put(`http://localhost:5001/api/admin/users/${editingUser.id}`, data, {
+           await axios.put(`${API_URL}/api/admin/users/${editingUser.id}`, data, {
                headers: { Authorization: `Bearer ${token}` }
            });
            toast.success('User berhasil diperbarui', { id: toastId });
        } else {
            // Endpoint untuk menambah user baru oleh admin mungkin berbeda, sesuaikan jika perlu
-           await axios.post('http://localhost:5001/api/auth/register', data);
+           await axios.post(`${API_URL}/api/auth/register`, data);
            toast.success('User baru berhasil ditambahkan', { id: toastId });
        }
        // PERBAIKAN 2: Kirim currentPage saat fetch ulang
@@ -115,7 +116,7 @@ const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
    const toastId = toast.loading('Menghapus pengguna...');
    try {
      const token = localStorage.getItem('token');
-     await axios.delete(`http://localhost:5001/api/admin/users/${userToDelete.id}`, {
+     await axios.delete(`${API_URL}/api/admin/users/${userToDelete.id}`, {
        headers: { Authorization: `Bearer ${token}` }
      });
      toast.success('User berhasil dihapus', { id: toastId });

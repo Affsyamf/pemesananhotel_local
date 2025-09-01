@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function RegisterPage() {
   const [formData, setFormData] = useState({
     username: '',
@@ -27,7 +28,7 @@ function RegisterPage() {
     const toastId = toast.loading('Membuat akun...');
 
     try {
-      await axios.post('http://localhost:5001/api/auth/register', formData);
+      await axios.post(`${API_URL}/api/auth/register`, formData);
       toast.success('Pendaftaran berhasil! Silakan login.', { id: toastId });
       navigate('/login');
     } catch (err) {

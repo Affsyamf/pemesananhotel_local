@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Hotel, Calendar, User, BedDouble, ArrowLeft, Tag } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function PrintBookingPage() {
     const { bookingId } = useParams();
     const [booking, setBooking] = useState(null);
@@ -13,7 +14,7 @@ function PrintBookingPage() {
         const fetchBookingDetails = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get(`http://localhost:5001/api/public/booking/${bookingId}`, {
+                const response = await axios.get(`${API_URL}/api/public/booking/${bookingId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setBooking(response.data);

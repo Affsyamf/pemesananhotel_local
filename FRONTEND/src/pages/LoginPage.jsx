@@ -3,6 +3,8 @@ import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
+
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function LoginPage() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
@@ -18,7 +20,7 @@ function LoginPage() {
     const toastId = toast.loading('Mencoba masuk...');
 
     try {
-      const response = await axios.post('http://localhost:5001/api/auth/login', formData);
+      const response = await axios.post(`${API_URL}/api/auth/login`, formData);
       const { token, role } = response.data;
 
       localStorage.setItem('token', token);

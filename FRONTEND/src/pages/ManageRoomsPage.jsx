@@ -8,6 +8,9 @@ import AdminRoomFilter from '../components/admin/AdminRoomFilter';
 import ConfirmationModal from '../components/admin/ConfirmationModal';
 import GalleryModal from '../components/admin/GalleryModal';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+
+
 function ManageRoomsPage() {
   const [allRooms, setAllRooms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +26,7 @@ function ManageRoomsPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5001/api/admin/rooms', {
+      const response = await axios.get(`${API_URL}/api/admin/rooms`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAllRooms(response.data);
@@ -89,7 +92,7 @@ function ManageRoomsPage() {
             facilities: data.facilities,
             description: data.description,
         };
-        await axios.put(`http://localhost:5001/api/admin/rooms/${editingRoom.id}`, payload, {
+        await axios.put(`${API_URL}/api/admin/rooms/${editingRoom.id}`, payload, {
             headers: { Authorization: `Bearer ${token}` }
         });
         toast.success('Kamar berhasil diperbarui', { id: toastId });
@@ -106,7 +109,7 @@ function ManageRoomsPage() {
             description: data.description,
             image_url: data.image_url,
         };
-        await axios.post('http://localhost:5001/api/admin/rooms', payload, {
+        await axios.post(`${API_URL}/api/admin/rooms`, payload, {
             headers: { Authorization: `Bearer ${token}` }
         });
         toast.success('Kamar baru berhasil ditambahkan', { id: toastId });
@@ -132,7 +135,7 @@ function ManageRoomsPage() {
     if (!roomToDelete) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5001/api/admin/rooms/${roomToDelete.id}`, {
+      await axios.delete(`${API_URL}/api/admin/rooms/${roomToDelete.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Kamar berhasil dihapus');

@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import { Users, ListChecks, DollarSign } from 'lucide-react';
 import SalesChart from '../components/admin/SalesChart'; // <-- Impor komponen grafik baru
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+
 const StatCard = ({ title, value, icon, description }) => (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-2">
@@ -27,8 +29,8 @@ function AdminDashboardPage() {
             try {
                 // Panggil kedua endpoint secara bersamaan untuk efisiensi
                 const [statsRes, chartRes] = await Promise.all([
-                    axios.get('http://localhost:5001/api/admin/stats', config),
-                    axios.get('http://localhost:5001/api/admin/sales-chart-data', config)
+                    axios.get(`${API_URL}/api/admin/stats`, config),
+                    axios.get(`${API_URL}/api/admin/sales-chart-data`, config)
                 ]);
 
                 setStats(statsRes.data);

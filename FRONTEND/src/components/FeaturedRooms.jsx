@@ -3,6 +3,7 @@ import axios from 'axios';
 import FeaturedRoomCard from './FeaturedRoomCard';
 import { BedDouble } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 // Komponen kecil untuk placeholder saat loading
 const SkeletonCard = () => (
   <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden animate-pulse">
@@ -23,7 +24,7 @@ function FeaturedRooms() {
   useEffect(() => {
     const fetchFeaturedRooms = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/api/public/featured-rooms');
+        const response = await axios.get(`${API_URL}/api/public/featured-rooms`);
         if (Array.isArray(response.data)) {
           setRooms(response.data);
         } else {

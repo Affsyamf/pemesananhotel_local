@@ -6,6 +6,7 @@ import { Printer, XCircle, CreditCard } from 'lucide-react';
 import ConfirmationModal from '../components/admin/ConfirmationModal';
 import Pagination from '../components/admin/Pagination';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function MyBookingsPage() {
   const [pageData, setPageData] = useState({ data: [], totalPages: 1, currentPage: 1 });
   const [loading, setLoading] = useState(true);
@@ -17,7 +18,7 @@ function MyBookingsPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5001/api/public/my-bookings?page=${page}&limit=10`, {
+      const response = await axios.get(`${API_URL}/api/public/my-bookings?page=${page}&limit=10`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPageData(response.data);
@@ -51,7 +52,7 @@ function MyBookingsPage() {
     const toastId = toast.loading('Memproses pembatalan...');
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5001/api/public/bookings/${bookingToCancel.id}/cancel`, {}, {
+      await axios.put(`${API_URL}/api/public/bookings/${bookingToCancel.id}/cancel`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Pesanan berhasil dibatalkan', { id: toastId });

@@ -4,6 +4,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Printer, ArrowLeft } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function AdminPrintBookingPage() {
     // Semua hook dipanggil di sini, di level atas
     const { bookingId } = useParams();
@@ -15,7 +16,7 @@ function AdminPrintBookingPage() {
         const fetchBookingDetails = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get(`http://localhost:5001/api/admin/booking/${bookingId}`, {
+                const response = await axios.get(`${API_URL}/api/admin/booking/${bookingId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setBooking(response.data);
